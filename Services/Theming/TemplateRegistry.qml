@@ -62,13 +62,15 @@ Singleton {
       "id": "gtk",
       "name": "GTK",
       "category": "system",
-      "input": "gtk.css",
+      "input": "gtk4.css",
       "outputs": [
         {
-          "path": "~/.config/gtk-3.0/noctalia.css"
+          "path": "~/.config/gtk-3.0/noctalia.css",
+          "input": "gtk3.css"
         },
         {
-          "path": "~/.config/gtk-4.0/noctalia.css"
+          "path": "~/.config/gtk-4.0/noctalia.css",
+          "input": "gtk4.css"
         }
       ],
       "postProcess": mode => `python3 ${gtkRefreshScript} ${mode}`
@@ -301,6 +303,18 @@ Singleton {
       "name": "Emacs",
       "category": "editor",
       "input": "emacs.el"
+    },
+    {
+      "id": "labwc",
+      "name": "Labwc",
+      "category": "compositor",
+      "input": "labwc.conf",
+      "outputs": [
+        {
+          "path": "~/.config/labwc/themerc-override"
+        }
+      ],
+      "postProcess": () => `${templateApplyScript} labwc`
     },
     {
       "id": "niri",
