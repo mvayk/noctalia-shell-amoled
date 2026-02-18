@@ -664,6 +664,7 @@ Singleton {
 
     property JsonObject colorSchemes: JsonObject {
       property bool useWallpaperColors: false
+      property bool amoledOverride: false
       property string predefinedScheme: "Noctalia (default)"
       property bool darkMode: true
       property string schedulingMode: "off"

@@ -219,6 +219,69 @@ ColumnLayout {
         visible: !Settings.data.colorSchemes.useWallpaperColors
       }
 
+      RowLayout {
+        Layout.fillWidth: true
+        spacing: Style.marginM
+
+        Rectangle {
+          width: 28
+          height: 28
+          radius: Style.radiusM
+          color: Color.mSurface
+
+          NIcon {
+            icon: "bolt-filled"
+            pointSize: Style.fontSizeL
+            color: Color.mPrimary
+            anchors.centerIn: parent
+          }
+        }
+
+        ColumnLayout {
+          Layout.fillWidth: true
+          spacing: 2
+
+          NText {
+            text: I18n.tr("panels.color-scheme.color-source-amoled-override-label")
+            pointSize: Style.fontSizeL
+            font.weight: Style.fontWeightBold
+            color: Color.mOnSurface
+          }
+
+          NText {
+            text: I18n.tr("panels.color-scheme.color-source-amoled-override-description")
+            pointSize: Style.fontSizeS
+            color: Color.mOnSurfaceVariant
+            wrapMode: Text.WordWrap
+            Layout.fillWidth: true
+          }
+        }
+
+        NToggle {
+          checked: Settings.data.colorSchemes.amoledOverride
+          onToggled: checked => {
+                       if (checked) {
+                         Settings.data.colorSchemes.amoledOverride = true;
+                         AppThemeService.generate();
+                       } else {
+                         Settings.data.colorSchemes.amoledOverride = false;
+                         AppThemeService.generate();
+                       }
+                     }
+        }
+      }
+
+      // Divider
+      Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 1
+        color: Color.mOutline
+        opacity: 0.2
+        Layout.topMargin: Style.marginS
+        Layout.bottomMargin: Style.marginS
+        visible: !Settings.data.colorSchemes.amoledOverride
+      }
+
       // Predefined schemes section (visible when wallpaper colors disabled)
       ColumnLayout {
         Layout.fillWidth: true

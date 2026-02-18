@@ -161,7 +161,7 @@ Singleton {
     // Run Python template processor with --scheme flag
     // Don't pass --mode so templates get both dark and light colors (e.g., zed.json needs both)
     // Pass --default-mode so "default" in templates resolves to the current theme mode
-    script += `python3 "${templateProcessorScript}" --scheme '${schemeJsonPathEsc}' --config '${configPathEsc}' --default-mode ${mode}\n`;
+    script += `python3 "${templateProcessorScript}" --scheme '${schemeJsonPathEsc}' --config '${configPathEsc}' --default-mode ${mode}${Settings.data.colorSchemes.amoledOverride ? ' --amoled' : ''}\n`;
 
     // Add user templates if enabled
     script += buildUserTemplateCommandForPredefined(schemeData, mode);
@@ -328,7 +328,7 @@ Singleton {
     // Don't pass --mode so templates get both dark and light colors (e.g., zed.json needs both)
     // Pass --default-mode so "default" in templates resolves to the current theme mode
     const schemeType = getSchemeType();
-    script += `python3 "${templateProcessorScript}" "$NOCTALIA_WP_PATH" --scheme-type ${schemeType} --config '${pathEsc}' --default-mode ${mode} `;
+    script += `python3 "${templateProcessorScript}" "$NOCTALIA_WP_PATH" --scheme-type ${schemeType} --config '${pathEsc}' --default-mode ${mode}${Settings.data.colorSchemes.amoledOverride ? ' --amoled' : ''} `;
 
     script += buildUserTemplateCommand("$NOCTALIA_WP_PATH", mode);
 
@@ -509,7 +509,7 @@ Singleton {
     const schemeType = getSchemeType();
     // Don't pass --mode so user templates get both dark and light colors
     // Pass --default-mode so "default" in templates resolves to the current theme mode
-    script += `  python3 "${templateProcessorScript}" ${inputQuoted} --scheme-type ${schemeType} --config '${userConfigPath}' --default-mode ${mode}\n`;
+    script += `  python3 "${templateProcessorScript}" ${inputQuoted} --scheme-type ${schemeType} --config '${userConfigPath}' --default-mode ${mode}${Settings.data.colorSchemes.amoledOverride ? ' --amoled' : ''}\n`;
     script += "fi";
 
     return script;

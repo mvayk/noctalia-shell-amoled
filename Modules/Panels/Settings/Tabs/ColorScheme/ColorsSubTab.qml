@@ -213,6 +213,20 @@ ColumnLayout {
                }
   }
 
+  NToggle {
+    label: I18n.tr("panels.color-scheme.color-source-amoled-override-label")
+    description: I18n.tr("panels.color-scheme.color-source-amoled-override-description")
+    checked: Settings.data.colorSchemes.amoledOverride
+    onToggled: checked => {
+                 Settings.data.colorSchemes.amoledOverride = checked;
+                 if (checked) {
+                   AppThemeService.generate();
+                 } else {
+                   AppThemeService.generate();
+                 }
+               }
+  }
+
   NComboBox {
     Layout.fillWidth: true
     label: I18n.tr("panels.color-scheme.wallpaper-monitor-source-label")

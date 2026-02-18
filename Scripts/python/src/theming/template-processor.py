@@ -27,6 +27,7 @@ Options:
     -r, --render     Render a template (input_path:output_path)
     -c, --config     Path to TOML configuration file with template definitions
     --mode           Theme mode: dark or light
+    --amoled         Override surface colors to pure black (dark) or white (light)
 
 Input:
     Can be an image file (PNG/JPG) or a JSON color palette file.
@@ -37,6 +38,7 @@ Example:
     python3 template-processor.py ~/wallpaper.jpg --dark -o theme.json
     python3 template-processor.py ~/wallpaper.png -r template.txt:output.txt
     python3 template-processor.py ~/wallpaper.png -c config.toml --mode dark
+    python3 template-processor.py ~/wallpaper.png --amoled --dark
 
 Author: Noctalia Team
 License: MIT
@@ -71,6 +73,7 @@ Examples:
   python3 template-processor.py wallpaper.jpg --dark -o theme.json                 # output to file
   python3 template-processor.py wallpaper.png -r template.txt:output.txt           # render template
   python3 template-processor.py wallpaper.png -c config.toml --mode dark           # render config, dark only
+  python3 template-processor.py wallpaper.png --amoled                             # pure black/white surfaces
         """
     )
 
@@ -150,7 +153,28 @@ Examples:
         help='JSON mapping of terminal IDs to output paths: {"foot": "/path/to/output", ...}'
     )
 
+    parser.add_argument(
+        '--amoled',
+        action='store_true',
+        help='Override surface colors to pure black (dark mode) or pure white (light mode)'
+    )
+
     return parser.parse_args()
+
+
+def apply_amoled_override(result: dict) -> None:
+    """Override surface-related colors for AMOLED displays."""
+    amoled_keys = (
+        "surface",
+        "surface_container",
+        "background",
+        "surface_dim",
+    )
+    for mode, colors in result.items():
+        amoled_color = "#000000" if mode == "dark" else "#ffffff"
+        for key in amoled_keys:
+            if key in colors:
+                colors[key] = amoled_color
 
 
 def main() -> int:
@@ -303,6 +327,10 @@ def main() -> int:
             # Generate theme for each mode
             for mode in modes:
                 result[mode] = generate_theme(palette, mode, scheme_type)
+
+    # Apply AMOLED override if requested (before rendering templates)
+    if args.amoled:
+        apply_amoled_override(result)
 
     # Output JSON
     json_output = json.dumps(result, indent=2)
