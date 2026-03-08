@@ -27,6 +27,7 @@ Options:
     -r, --render     Render a template (input_path:output_path)
     -c, --config     Path to TOML configuration file with template definitions
     --mode           Theme mode: dark or light
+    --amoled         Override surface colors to pure black (dark) or white (light)
 
 Input:
     Can be an image file (PNG/JPG) or a JSON color palette file.
@@ -37,6 +38,7 @@ Example:
     python3 template-processor.py ~/wallpaper.jpg --dark -o theme.json
     python3 template-processor.py ~/wallpaper.png -r template.txt:output.txt
     python3 template-processor.py ~/wallpaper.png -c config.toml --mode dark
+    python3 template-processor.py wallpaper.png --amoled --dark
 
 Author: Noctalia Team
 License: MIT
@@ -51,9 +53,15 @@ from pathlib import Path
 
 # Import from lib package
 from lib import (
-    read_image, ImageReadError, extract_palette, generate_theme,
-    TemplateRenderer, expand_predefined_scheme,
-    extract_source_color, source_color_to_rgb, Color,
+    Color,
+    ImageReadError,
+    TemplateRenderer,
+    expand_predefined_scheme,
+    extract_palette,
+    extract_source_color,
+    generate_theme,
+    read_image,
+    source_color_to_rgb,
 )
 from lib.scheme import inject_terminal_colors
 
@@ -61,8 +69,8 @@ from lib.scheme import inject_terminal_colors
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(
-        prog='template-processor',
-        description='Extract color palettes from wallpapers and generate themes',
+        prog="template-processor",
+        description="Extract color palettes from wallpapers and generate themes",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -71,80 +79,109 @@ Examples:
   python3 template-processor.py wallpaper.jpg --dark -o theme.json                 # output to file
   python3 template-processor.py wallpaper.png -r template.txt:output.txt           # render template
   python3 template-processor.py wallpaper.png -c config.toml --mode dark           # render config, dark only
-        """
+  python3 template-processor.py wallpaper.png --amoled                             # pure black/white surfaces
+        """,
     )
 
     parser.add_argument(
-        'image',
+        "image",
         type=Path,
-        nargs='?',
-        help='Path to wallpaper image (PNG/JPG) or JSON color palette (not required if --scheme is used)'
+        nargs="?",
+        help="Path to wallpaper image (PNG/JPG) or JSON color palette (not required if --scheme is used)",
     )
 
     # Scheme type selection
     parser.add_argument(
-        '--scheme-type',
-        choices=['tonal-spot', 'content', 'fruit-salad', 'rainbow', 'monochrome', 'vibrant', 'faithful', 'dysfunctional', 'muted'],
-        default='tonal-spot',
-        help='Color scheme type (default: tonal-spot)'
+        "--scheme-type",
+        choices=[
+            "tonal-spot",
+            "content",
+            "fruit-salad",
+            "rainbow",
+            "monochrome",
+            "vibrant",
+            "faithful",
+            "dysfunctional",
+            "muted",
+        ],
+        default="tonal-spot",
+        help="Color scheme type (default: tonal-spot)",
     )
 
     # Theme mode (mutually exclusive)
     mode_group = parser.add_mutually_exclusive_group()
     mode_group.add_argument(
-        '--dark',
-        action='store_true',
-        help='Generate dark theme only'
+        "--dark", action="store_true", help="Generate dark theme only"
     )
     mode_group.add_argument(
-        '--light',
-        action='store_true',
-        help='Generate light theme only'
+        "--light", action="store_true", help="Generate light theme only"
     )
     mode_group.add_argument(
-        '--both',
-        action='store_true',
+        "--both",
+        action="store_true",
         default=True,
-        help='Generate both dark and light themes (default)'
+        help="Generate both dark and light themes (default)",
     )
 
     parser.add_argument(
-        '--output', '-o',
+        "--output",
+        "-o",
         type=Path,
-        help='Write JSON output to file (stdout if omitted)'
+        help="Write JSON output to file (stdout if omitted)",
     )
 
     parser.add_argument(
-        '--render', '-r',
-        action='append',
-        help='Render a template (input_path:output_path)'
+        "--render",
+        "-r",
+        action="append",
+        help="Render a template (input_path:output_path)",
     )
 
     parser.add_argument(
-        '--config', '-c',
+        "--config",
+        "-c",
         type=Path,
-        help='Path to TOML configuration file with template definitions'
+        help="Path to TOML configuration file with template definitions",
     )
     parser.add_argument(
-        '--mode',
-        choices=['dark', 'light'],
-        help='Theme mode: dark or light'
+        "--mode", choices=["dark", "light"], help="Theme mode: dark or light"
     )
 
     parser.add_argument(
-        '--scheme',
+        "--scheme",
         type=Path,
-        help='Path to predefined scheme JSON file (bypasses image extraction)'
+        help="Path to predefined scheme JSON file (bypasses image extraction)",
     )
 
     parser.add_argument(
-        '--default-mode',
-        choices=['dark', 'light'],
-        default='dark',
-        help='Theme mode to use for "default" in templates (default: dark)'
+        "--default-mode",
+        choices=["dark", "light"],
+        default="dark",
+        help='Theme mode to use for "default" in templates (default: dark)',
+    )
+
+    parser.add_argument(
+        "--amoled",
+        action="store_true",
+        help="Override surface colors to pure black (dark mode) or pure white (light mode)",
     )
 
     return parser.parse_args()
+
+
+def apply_amoled_override(result: dict) -> None:
+    """Override surface-related colors for AMOLED displays."""
+    amoled_keys = (
+        "surface",
+        "surface_container",
+        "background",
+        "surface_dim",
+    )
+    for mode, colors in result.items():
+        amoled_color = "#000000" if mode == "dark" else "#ffffff"
+        for key in amoled_keys:
+            if key in colors:
+                colors[key] = amoled_color
 
 
 def main() -> int:
@@ -155,9 +192,9 @@ def main() -> int:
     result: dict[str, dict[str, str]] = {}
 
     # Determine mode from arguments
-    if args.mode == 'dark':
+    if args.mode == "dark":
         modes = ["dark"]
-    elif args.mode == 'light':
+    elif args.mode == "light":
         modes = ["light"]
     elif args.dark:
         modes = ["dark"]
@@ -173,7 +210,7 @@ def main() -> int:
             return 1
 
         try:
-            with open(args.scheme, 'r') as f:
+            with open(args.scheme, "r") as f:
                 scheme_data = json.load(f)
 
             # Scheme format: {"dark": {"mPrimary": "#...", ...}, "light": {...}}
@@ -188,7 +225,10 @@ def main() -> int:
                     result[mode] = expand_predefined_scheme(scheme_data, mode)
                     inject_terminal_colors(result[mode], scheme_data)
                 else:
-                    print(f"Error: Invalid scheme format - missing '{mode}' or 'mPrimary'", file=sys.stderr)
+                    print(
+                        f"Error: Invalid scheme format - missing '{mode}' or 'mPrimary'",
+                        file=sys.stderr,
+                    )
                     return 1
 
         except json.JSONDecodeError as e:
@@ -205,7 +245,10 @@ def main() -> int:
     else:
         # Validate image argument is provided
         if args.image is None:
-            print("Error: Image path is required (unless --scheme is used)", file=sys.stderr)
+            print(
+                "Error: Image path is required (unless --scheme is used)",
+                file=sys.stderr,
+            )
             return 1
 
         # Validate image path
@@ -214,9 +257,9 @@ def main() -> int:
             return 1
 
         # Check if input is a JSON palette (Predefined Color Scheme)
-        if args.image.suffix.lower() == '.json':
+        if args.image.suffix.lower() == ".json":
             try:
-                with open(args.image, 'r') as f:
+                with open(args.image, "r") as f:
                     input_data = json.load(f)
 
                 # Expect {"colors": ...} or direct dict
@@ -226,8 +269,8 @@ def main() -> int:
                 # structure: key -> { default: { hex: "#..." } } or key -> "#..."
                 flat_colors = {}
                 for k, v in colors_data.items():
-                    if isinstance(v, dict) and 'default' in v and 'hex' in v['default']:
-                        flat_colors[k] = v['default']['hex']
+                    if isinstance(v, dict) and "default" in v and "hex" in v["default"]:
+                        flat_colors[k] = v["default"]["hex"]
                     elif isinstance(v, str):
                         flat_colors[k] = v
                     else:
@@ -252,7 +295,13 @@ def main() -> int:
 
             # M3 schemes use Triangle filter (matches matugen), others use Box
             # (sharper downscale preserves distinct color regions for k-means)
-            m3_schemes = {"tonal-spot", "content", "fruit-salad", "rainbow", "monochrome"}
+            m3_schemes = {
+                "tonal-spot",
+                "content",
+                "fruit-salad",
+                "rainbow",
+                "monochrome",
+            }
             resize_filter = "Triangle" if scheme_type in m3_schemes else "Box"
 
             try:
@@ -300,6 +349,9 @@ def main() -> int:
             for mode in modes:
                 result[mode] = generate_theme(palette, mode, scheme_type)
 
+    if args.amoled:
+        apply_amoled_override(result)
+
     # Output JSON
     json_output = json.dumps(result, indent=2)
 
@@ -316,15 +368,23 @@ def main() -> int:
     # Process templates
     if args.render or args.config:
         image_path = str(args.image) if args.image else None
-        renderer = TemplateRenderer(result, default_mode=args.default_mode, image_path=image_path, scheme_type=args.scheme_type)
+        renderer = TemplateRenderer(
+            result,
+            default_mode=args.default_mode,
+            image_path=image_path,
+            scheme_type=args.scheme_type,
+        )
 
         if args.render:
             for render_spec in args.render:
-                if ':' not in render_spec:
-                    print(f"Error: Invalid render spec (must be input:output): {render_spec}", file=sys.stderr)
+                if ":" not in render_spec:
+                    print(
+                        f"Error: Invalid render spec (must be input:output): {render_spec}",
+                        file=sys.stderr,
+                    )
                     continue
 
-                input_str, output_str = render_spec.split(':', 1)
+                input_str, output_str = render_spec.split(":", 1)
                 input_path = Path(input_str).expanduser()
                 output_path = Path(output_str).expanduser()
 
@@ -343,5 +403,5 @@ def main() -> int:
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     sys.exit(main())
